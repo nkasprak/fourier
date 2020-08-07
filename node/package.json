@@ -1,0 +1,12 @@
+{
+  "name": "fourier_demo",
+  "version": "0.0.1",
+  "description": "Interactive fourier demo",
+  "main": "main.js",
+  "scripts": {},
+  "author": "Nick Kasprak",
+  "license": "MIT",
+  "dependencies": {
+    "ml-fft": "^1.3.5"
+  }
+}

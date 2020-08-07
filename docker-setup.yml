@@ -1,0 +1,9 @@
+version: '3'
+services:
+    node-setup:
+        volumes:
+            - ./node:/opt/project:rw
+        build:
+            context: .
+            dockerfile: services/setup/Dockerfile
+        container_name: fourier-setup

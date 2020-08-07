@@ -1,0 +1,10 @@
+version: '3'
+services:
+    node-build:
+        volumes:
+            - ./node:/opt/project:rw
+            - ./services/build/webpack.config.js:/opt/project/webpack.config.js:rw
+        build:
+            context: .
+            dockerfile: services/build/Dockerfile
+        container_name: fourier-build

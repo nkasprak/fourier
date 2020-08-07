@@ -1,0 +1,1 @@
+docker-compose -f docker-setup.yml run node-setup

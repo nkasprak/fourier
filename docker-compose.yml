@@ -1,0 +1,26 @@
+version: '3'
+services:
+    node-watch:
+        volumes:
+            - ./node:/opt/project:rw
+            - ./services/watch/webpack.config.js:/opt/project/webpack.config.js:rw
+        build:
+            context: .
+            dockerfile: services/watch/Dockerfile
+        container_name: fourier-watch
+    apache-dev:
+        volumes:
+            - ./html:/var/www/html:rw
+            - ./node/dev:/var/www/html/app:rw
+        image: php:apache
+        ports:
+            - "8080:80"
+        container_name: fourier-server-dev
+    apache-prod:
+        volumes:
+            - ./html:/var/www/html:rw
+            - ./node/prod:/var/www/html/app:rw
+        image: php:apache
+        ports:
+            - "8081:80"
+        container_name: fourier-server-prod
