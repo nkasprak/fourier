@@ -1,6 +1,9 @@
-const testvar = "hello";
-const fft = require("ml-fft");
+var application = {};
 
-((test)=> {
-  console.log("hello");
-})();
+require("./draw_wave.js")(application);
+
+
+
+const fft = require("ml-fft");
+require("./scss/style.scss");
+
