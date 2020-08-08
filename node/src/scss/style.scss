@@ -1,5 +1,5 @@
 .post {
-    max-width:800px;
+    max-width:1024px;
 }
 
 #draw-wave-container {
@@ -8,6 +8,7 @@
     height:0;
     padding-bottom:25%;
     border:1px solid #aaa;
+    margin-bottom:1em;
     & > canvas {
         position:absolute;
         width:100%;

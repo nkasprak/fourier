@@ -7,9 +7,14 @@
   "author": "Nick Kasprak",
   "license": "MIT",
   "dependencies": {
-    "ml-fft": "^1.3.5"
+    "core-js": "^3.6.5",
+    "ml-fft": "^1.3.5",
+    "regenerator-runtime": "^0.13.7"
   },
   "devDependencies": {
+    "@babel/core": "^7.11.1",
+    "@babel/preset-env": "^7.11.0",
+    "babel-loader": "^8.1.0",
     "css-loader": "^4.2.1",
     "dart-sass": "^1.25.0",
     "sass": "^1.26.10",

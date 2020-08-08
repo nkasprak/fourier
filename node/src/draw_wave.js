@@ -1,77 +1,51 @@
-var application;
+var application, 
+    canvas, 
+    wave, 
+    state,
+    width,
+    height,
+    midpoint,
+    ctx;
 
-module.exports = function(_app) {
-    application = _app;
-    application.setup_draw_wave = setup_draw_wave();
-}
+const wave_color = "#0c61a4";
+const shadow_color = "#cccccc";
+const wave_width = 2;
+const shadow_width = 3;
+const shadow_offset = 2;
 
 function setup_draw_wave() {
     register_events();
 }
 
-var state = {
+state = {
     clicked: false
 };
 
-var the_wave = [];
-
-
 function register_events() {
 
-    var canvas = document.getElementById("draw-wave");
+    canvas = document.getElementById("draw-wave");
+    width = canvas.getAttribute("width")*1;
+    height = canvas.getAttribute("height")*1;
+    ctx = canvas.getContext("2d");
+    midpoint = height/2;
 
-    var wave;
-    var midpoint = canvas.getAttribute("height")/2;
-
-    the_wave[Math.floor(canvas.getAttribute("width")/4)] = midpoint;
-    the_wave[Math.floor(canvas.getAttribute("width")/2)] = midpoint;
-    the_wave[0] = midpoint;
-    the_wave[canvas.getAttribute("width")-1] = midpoint;
-
-    function newPoint(x, y) {
-        var width = canvas.offsetWidth;
-        var height = canvas.offsetHeight;
-        var cx = Math.floor(x/width * canvas.getAttribute("width"));
-        var cy = Math.floor(y/height * canvas.getAttribute("height"));
-        wave[cx] = cy;
-    }
-
-    function tempDrawPoint(x, y) {
-        var ctx = canvas.getContext("2d");
-        ctx.fillStyle = "#000000";
-        ctx.fillRect(x, y, 1, 1);
-    }
-
-    function redrawCanvas() {
-        var ctx = canvas.getContext("2d");
-        var width = canvas.getAttribute("width");
-        var height = canvas.getAttribute("height");
-        ctx.fillStyle = "#ffffff";
-        ctx.fillRect(0, 0, width, height);
-        ctx.fillStyle = "#000000";
-        the_wave.forEach((y, x)=> {
-            ctx.fillRect(x, y, 1, 1);
-        });
-    }
-
-    function finishDraw() {
-        state.clicked = false;
-        merge_wave(the_wave, wave);
-        modifyWave(the_wave);
-        repeatWave(the_wave);
-        redrawCanvas();
-    }
+    wave = emptyWave();
 
     canvas.addEventListener("mousedown", function(e) {
-        wave = [];
+        wave = emptyWave();
+        clearCanvas();
         state.clicked = true;
         var x = e.offsetX;
         var y = e.offsetY;
-        newPoint(x, y);
-        redrawCanvas();
+        var stdPoint = std(x, y);
+        newPoint(stdPoint.x, stdPoint.y);
+        tempDrawPoint(stdPoint.x, stdPoint.y);
     });
 
     canvas.addEventListener("mouseup", function() {
+        if (!state.clicked) {
+            return;
+        }
         finishDraw();
     });
 
@@ -86,17 +60,83 @@ function register_events() {
         if (state.clicked) {
             var x = e.offsetX;
             var y = e.offsetY;
-            newPoint(x, y);
-            tempDrawPoint(x, y);
+            var stdPoint = std(x, y);
+            newPoint(stdPoint.x, stdPoint.y);
+            tempDrawPoint(stdPoint.x, stdPoint.y);
         }
     });
 }
 
-function repeatWave(wave) {
+function emptyWave() {
+    var wave = new Uint8Array(width);
+    wave[Math.floor(width/4)] = midpoint;
+    wave[Math.floor(width/2)] = midpoint;
+    wave[0] = midpoint;
+    wave[width-1] = midpoint;
+    return wave;
+}
+
+function std(x, y) {
+    var pwidth = canvas.offsetWidth;
+    var pheight = canvas.offsetHeight;
+    var cx = Math.floor(x/pwidth * width);
+    var cy = Math.floor(y/pheight * height);
+    return {x: cx, y: cy};
+}
+
+function newPoint(cx, cy) {
+    wave[cx] = cy;
+    if (typeof(state.prevX)!=="undefined") {
+        for (var _x = state.prevX +1; _x < cx; _x++) {
+            wave[_x] = undefined;
+        }
+    }
+    state.prevX = cx;
+    state.prevY = cy;
+}
+
+function tempDrawPoint(x, y) {
+    ctx.fillStyle = shadow_color;
+    ctx.fillRect(x+shadow_offset, y+shadow_offset, shadow_width, shadow_width);
+    ctx.fillStyle = wave_color;
+    ctx.fillRect(x, y, wave_width, wave_width);
+}
+
+function redrawCanvas() {
+    clearCanvas();
+    ctx.beginPath();
+    ctx.moveTo(0+shadow_offset, midpoint+shadow_offset);
+    ctx.strokeStyle = shadow_color;
+    ctx.lineWidth = shadow_width;
+    wave.forEach((y, x)=> {
+        ctx.lineTo(x+shadow_offset, y+shadow_offset);
+    });
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(0, midpoint);
+    ctx.strokeStyle = wave_color;
+    ctx.lineWidth = wave_width;
+    wave.forEach((y, x)=> {
+        ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+}
+
+function clearCanvas() {
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, width, height);
+}
+
+function finishDraw() {
+    state.clicked = false;
+    interpolateWave();
+    repeatWave();
+    redrawCanvas();
+}
+
+function repeatWave() {
     var repeat = Math.floor(wave.length/4);
-    console.log(wave);
     var n = Math.floor(wave.length / repeat);
-    console.log(repeat);
     for (i = 0; i < repeat; i++) {
         for (p = 0; p < n; p++) {
             var x = p*repeat + i;
@@ -107,23 +147,11 @@ function repeatWave(wave) {
     }
 }
 
-function merge_wave(base_wave, new_wave) {
-    var limits = Object.keys(new_wave);
-    for (var x = limits[0]*1, xx = limits[limits.length-1]*1; x<xx; x++) {
-        delete(base_wave[x]);
-    }
-    new_wave.forEach((y, x) => {
-        base_wave[x] = y;
-    });
-}
-
-function modifyWave(wave) {
+function interpolateWave() {
     var x1 = 0, x2;
     for (var i = 0, ii = wave.length; i<ii; i++) {
-        if (typeof(wave[i])!=="undefined") {
-            if (typeof(x1)==="undefined") {
-                x1 = i;
-            } else if (typeof(x2)==="undefined") {
+        if (wave[i] > 0) {
+            if (typeof(x2)==="undefined") {
                 x2 = i;
                 interpolate(x1, x2);
                 x1 = x2;
@@ -137,7 +165,29 @@ function modifyWave(wave) {
         var y2 = wave[x2];
         var m = (y2 - y1)/(x2 - x1);
         for (var x = x1; x<x2;x++) {
-            wave[x] = m*(x - x1) + y1;
+            wave[x] = Math.floor(m*(x - x1) + y1);
         }
     }
+}
+
+function normalize(wave) {
+    var min, max;
+    var r = new Int8Array(wave.length/4);
+    for (var x = 0, xx=wave.length/4; x<xx; x++) {
+        min = Math.min(wave[x], min) || wave[x];
+        max = Math.max(wave[x], max) || wave[x];
+    }
+    var mid = Math.floor((max + min)/2);
+    for (x = 0, xx=wave.length/4; x<xx; x++) {
+        r[x] = 0 - (wave[x] - mid);
+    }
+    return r;
+}
+
+module.exports = function(_app) {
+    application = _app;
+    application.setup_draw_wave = setup_draw_wave;
+    application.get_drawn_wave = function() {
+        return normalize(wave);
+    };
 }
