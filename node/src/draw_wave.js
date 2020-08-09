@@ -1,3 +1,5 @@
+"use strict";
+
 var application, 
     canvas, 
     wave, 
@@ -137,8 +139,8 @@ function finishDraw() {
 function repeatWave() {
     var repeat = Math.floor(wave.length/4);
     var n = Math.floor(wave.length / repeat);
-    for (i = 0; i < repeat; i++) {
-        for (p = 0; p < n; p++) {
+    for (var i = 0; i < repeat; i++) {
+        for (var p = 0; p < n; p++) {
             var x = p*repeat + i;
             if (x < repeat || x >= 2*repeat) {
                 wave[x] = wave[i + repeat];
@@ -184,7 +186,7 @@ function normalize(wave) {
     return r;
 }
 
-module.exports = function(_app) {
+export default function(_app) {
     application = _app;
     application.setup_draw_wave = setup_draw_wave;
     application.get_drawn_wave = function() {
