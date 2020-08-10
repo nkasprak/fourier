@@ -28,7 +28,13 @@ function do_transform(wave) {
             im:_im
         };
     }
-    
+    for (var i = 1, ii = components.length/2; i<ii; i++) {
+        for (var x = 0, xx = components[i].re.length; x<xx; x++) {
+            components[i].re[x] += components[ii*2 - i].re[x];
+            components[i].im[x] += components[ii*2 - i].im[x];
+        } 
+    }
+    components = components.slice(0, components.length/2);
     return components;
 }
 

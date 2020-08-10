@@ -9,9 +9,9 @@ var application,
     width,
     height,
     totals = [],
-    colors = color_gen("#3250a8", "#f2b98a", 256);
+    colors;
 
-const time_for_harmonic = 2000;
+const time_for_harmonic = 20000;
 const shift_time = 500;
 
 var animation_state;
@@ -41,7 +41,7 @@ function normalize(comp) {
         min = Math.min(comp[i], min) || comp[i];
     }
     for (var i = 0, ii = comp.length; i<ii; i++) {
-        r[i] = 2*(comp[i] - min);
+        r[i] = 1*(comp[i] - min);
     }
     return r;
 }
@@ -96,6 +96,7 @@ function animate(raw_components) {
         for (var n = 0, nn = raw_components.length; n<nn; n++) {
             n_components[n] = normalize(raw_components[n].re);
         }
+        colors = color_gen("#3250a8", "#f2b98a", n_components.length);
         animation_state.components = n_components;
         start_movement();
     });
@@ -115,30 +116,32 @@ function shift_down(cb) {
     if (max > height) {
         shift = min;
     }
-    animation_state.offset += shift;
-    var image_data = ctx.getImageData(0, 0, width, height);
-    var frame = function() {
-        var progress = (Date.now() - start)/shift_time;
-        if (progress >= 1) {
-            progress = 1;
-        }
-        var offset = Math.round(progress*shift);
-        
-        ctx.putImageData(image_data, 0, offset);
-        repeat_wave();
-        if (animation_state.stopped) {
-            return;
-        }
-        if (progress < 1) {
-            window.requestAnimationFrame(frame);
-        } else {
-            for (var x = 0, xx = totals.length; x<xx; x++) {
-                totals[x] -= shift;
+    if (shift > 0) {
+        animation_state.offset += shift;
+        var image_data = ctx.getImageData(0, 0, width, height);
+        var frame = function() {
+            var progress = (Date.now() - start)/shift_time;
+            if (progress >= 1) {
+                progress = 1;
             }
-            cb();
+            var offset = Math.round(progress*shift);
+            
+            ctx.putImageData(image_data, 0, offset);
+            repeat_wave();
+            if (animation_state.stopped) {
+                return;
+            }
+            if (progress < 1) {
+                window.requestAnimationFrame(frame);
+            } else {
+                for (var x = 0, xx = totals.length; x<xx; x++) {
+                    totals[x] -= shift;
+                }
+                cb();
+            }
         }
-    }
-    frame();
+        frame();
+    } else {cb();}
 }
 
 function start_movement() {
@@ -174,8 +177,9 @@ function component_down(harmonic, cb) {
     var comp = comps[harmonic];
     var start = Date.now();
     var finished = [];
+    var component_time = Math.max(time_for_harmonic / harmonic/3, 200); //*speed up for later harmonics*/
     var frame = function() {
-        var progress = (Date.now() - start)/time_for_harmonic;
+        var progress = (Date.now() - start)/component_time;
         if (progress >= 1) {
             progress = 1;
         }
