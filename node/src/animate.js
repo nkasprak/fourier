@@ -8,10 +8,12 @@ var application,
     svg,
     width,
     height,
-    totals = [],
+    totals = new Float64Array(256),
+    play_timer,
+    first_frame_timer,
     colors;
 
-const time_for_harmonic = 20000;
+const time_for_harmonic = 30000;
 const shift_time = 500;
 
 var animation_state;
@@ -19,15 +21,21 @@ var animation_state;
 export default function(_app) {
     application = _app;
     application.animate_transform_components = animate;
+    application.start_transformed_late = start_transformed_late;
     application.setup_animate = setup;
 }
 
 function setup() {
     document.getElementById("stop").addEventListener("click", function() {
         animation_state = animation_state || {};
+        application.stop_audio();
+        if (play_timer) {
+            clearTimeout(play_timer);
+        }
         animation_state.stopped = true;
+        document.getElementById("listen").removeAttribute("disabled");
         window.requestAnimationFrame(function() {
-            totals = [];
+            totals = new Float64Array(256);
             document.getElementById("stop").setAttribute("disabled",true);
         });
     });
@@ -56,11 +64,12 @@ function harmonic_color(i) {
 function finish_component(comps, x, n) {
     var comp = comps[n];
     ctx.fillStyle = "#ffffff";
-    totals[x] = totals[x] || 0;
+    if (typeof(totals[x])==="undefined") {
+        totals[x] = 0;
+    }
     totals[x] += comp[x];
     ctx.fillRect(x, 0, 1, height);
     ctx.fillStyle = harmonic_color(n);
-    totals[x] = totals[x] || 0;
     ctx.fillRect(x, height - totals[x], 1, totals[x]);
     ctx.fillStyle="rgba(0,0,0,0.5)";
     ctx.fillRect(x, height - totals[x] + 1, 1, 1);
@@ -78,15 +87,16 @@ function finish_component(comps, x, n) {
 }
 
 function animate(raw_components) {
+    document.getElementById("listen").setAttribute("disabled",true);
     animation_state = {
         stopped:true,
-        harmonic: 1,
+        harmonic: 0,
         progress: 0,
         offset:0
-    }
+    };
     window.requestAnimationFrame(function() {
         animation_state.stopped = false;
-        totals = [];
+        totals = new Float64Array(256);
         canvas = document.getElementById("transformed-wave");
         ctx = canvas.getContext("2d");
         svg = document.getElementById("transform-overlay");
@@ -105,7 +115,7 @@ function animate(raw_components) {
 function shift_down(cb) {
     var start = Date.now();
     var min;
-    var next_frame_totals = [];
+    var next_frame_totals = new Float64Array(256);
     var max;
     var shift = 0;
     for (var x = 0, xx = totals.length; x < xx; x++) {
@@ -114,7 +124,7 @@ function shift_down(cb) {
         max = Math.max(next_frame_totals[x], max) || next_frame_totals[x];
     }
     if (max > height) {
-        shift = min;
+        shift = min-10;
     }
     if (shift > 0) {
         animation_state.offset += shift;
@@ -144,25 +154,66 @@ function shift_down(cb) {
     } else {cb();}
 }
 
+function start_transformed_late() {
+    if (animation_state) {
+        if (!animation_state.stopped) {
+            if (totals.length) {
+                animation_state.harmonic--;
+                play_wave();
+                animation_state.harmonic++;
+            }
+        }
+    }
+}
+
 function start_movement() {
     var comps = animation_state.components;
+    application.stop_audio();
     update_overlay(animation_state.harmonic);
     for (var x = 0, xx = comps[animation_state.harmonic].length;x<xx;x++) {
         finish_component(comps, x, animation_state.harmonic);
     }
     repeat_wave();
+    if (document.getElementById("transformed-audio-enable").value === "on") {
+        if (!animation_state.stopped) {
+            play_wave();
+        }
+    }
     var next_comp = function() {
         animation_state.harmonic++;
         update_overlay(animation_state.harmonic);
         animation_state.progress = 0;
         if (comps[animation_state.harmonic]) {
             component_down(animation_state.harmonic, function() {
-                shift_down(next_comp);
+                if (!animation_state.stopped) {
+                    play_wave();
+                    shift_down(next_comp);
+                }
             });
         }
-    }
-    setTimeout(next_comp, 1000);
+    };
+    next_comp();
 
+}
+
+function play_wave() {
+    if (document.getElementById("transformed-audio-enable").value !== "on") {
+        return;
+    }
+    var wave_to_play = [];
+    if (animation_state.harmonic === 0) {
+        wave_to_play = animation_state.components[1];
+    } else {
+        if (totals) {
+            for (var i = 0, ii = totals.length; i<ii; i++) {
+                wave_to_play[i] = totals[i] + animation_state.components[animation_state.harmonic+1][i];
+            }
+        }
+    }   
+    if (play_timer) {
+        clearTimeout(play_timer);
+    }
+    play_timer = application.play_wave(normalize(wave_to_play), time_for_harmonic/1000);
 }
 
 function repeat_wave() {
@@ -177,7 +228,10 @@ function component_down(harmonic, cb) {
     var comp = comps[harmonic];
     var start = Date.now();
     var finished = [];
-    var component_time = Math.max(time_for_harmonic / harmonic/3, 200); //*speed up for later harmonics*/
+    var component_time = Math.max(time_for_harmonic / harmonic/3, 500); //*speed up for later harmonics*/
+    if (harmonic === 1) {
+        component_time = 1;
+    }
     var frame = function() {
         var progress = (Date.now() - start)/component_time;
         if (progress >= 1) {
@@ -208,7 +262,14 @@ function component_down(harmonic, cb) {
         if (progress < 1) {
             window.requestAnimationFrame(frame);
         } else {
-            cb();
+            if (harmonic===1) {
+                if (first_frame_timer) {
+                    clearTimeout(first_frame_timer);
+                }
+                first_frame_timer = setTimeout(cb, 3000);
+            } else {
+                cb();
+            }
         }
     };
 

@@ -8,6 +8,7 @@ module.exports = {
     path: path.resolve(__dirname, 'dev'),
     filename: 'app.js'
   },
+  devtool: 'inline-source-map',
   module: {
     rules: [
       {

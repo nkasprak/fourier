@@ -153,6 +153,7 @@ function finishDraw() {
     repeatWave();
     redrawCanvas();
     document.getElementById("get_wave").removeAttribute("disabled");
+    document.getElementById("listen").removeAttribute("disabled");
 }
 
 function repeatWave() {

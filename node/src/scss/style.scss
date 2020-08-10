@@ -12,6 +12,15 @@ button, select, option {
     width:100%;
     height:0;
     padding-bottom:25%;
+    .zero-line {
+        top:50%;
+        left:0;
+        right:0;
+        height:1px;
+        background-color:#aaa;
+        position:absolute;
+        pointer-events:none;
+    }
     border:1px solid #aaa;
     margin-bottom:1em;
     margin-top:1em;

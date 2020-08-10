@@ -23,13 +23,18 @@
         <canvas id="draw-wave" width="1024" height="256">
 
         </canvas>
-
+        <div class="zero-line"></div>
         <div class="left-block block"></div>
         <div class="right-block block"></div>
       </div>
-
+      <button id="listen" disabled>Listen</button>
+      <br><br>
       <button id="get_wave" disabled>Display As Sum of Sines</button>
       <button id="stop" disabled>Stop</button>
+      Transformed wave audio: <select id="transformed-audio-enable">
+        <option value="off">Off</option>
+        <option value="on" selected>On</option>
+      </select>
       <div id="transformed-wave-container">
         <canvas id="transformed-wave" width="1024" height="256">
 
@@ -39,7 +44,7 @@
         </svg>
         <div id="overlay-label"></div>
       </div>
-
+      
     </div>
     
     <script src="app/app.js"></script>
