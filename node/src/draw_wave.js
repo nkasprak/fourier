@@ -33,40 +33,58 @@ function register_events() {
 
     wave = emptyWave();
 
-    canvas.addEventListener("mousedown", function(e) {
+    var mousedownListen = function(e) {
         wave = emptyWave();
         clearCanvas();
         state.clicked = true;
         var x = e.offsetX;
         var y = e.offsetY;
+        if (e.touches) {
+            if (e.touches.length) {
+                var offsetX = canvas.offsetLeft;
+                var offsetY = canvas.offsetTop;
+                x = e.touches[0].pageX - offsetX;
+                y = e.touches[0].pageY - offsetY;
+            }
+        }
         var stdPoint = std(x, y);
         newPoint(stdPoint.x, stdPoint.y);
         tempDrawPoint(stdPoint.x, stdPoint.y);
-    });
+    }
+    canvas.addEventListener("mousedown", mousedownListen);
+    canvas.addEventListener("touchstart", mousedownListen);
 
-    canvas.addEventListener("mouseup", function() {
+    var mouseUpListen = function(e) {
         if (!state.clicked) {
             return;
         }
         finishDraw();
-    });
+    }
+    canvas.addEventListener("mouseup", mouseUpListen);
+    canvas.addEventListener("touchend", mouseUpListen);
+    canvas.addEventListener("mouseout", mouseUpListen);
+    canvas.addEventListener("touchleave", mouseUpListen);
 
-    canvas.addEventListener("mouseout", function() {
-        if (!state.clicked) {
-            return;
-        }
-        finishDraw();
-    });
-
-    canvas.addEventListener("mousemove", function(e) {
+    var mouseMoveListen = function(e) {
         if (state.clicked) {
             var x = e.offsetX;
             var y = e.offsetY;
+            if (e.touches) {
+                if (e.touches.length) {
+                    var offsetX = canvas.offsetLeft;
+                    var offsetY = canvas.offsetTop;
+                    x = e.touches[0].pageX - offsetX;
+                    y = e.touches[0].pageY - offsetY;
+                }
+            }
             var stdPoint = std(x, y);
             newPoint(stdPoint.x, stdPoint.y);
             tempDrawPoint(stdPoint.x, stdPoint.y);
         }
-    });
+    }
+
+    canvas.addEventListener("mousemove", mouseMoveListen);
+    canvas.addEventListener("touchmove", mouseMoveListen);
 }
 
 function emptyWave() {
@@ -134,6 +152,7 @@ function finishDraw() {
     interpolateWave();
     repeatWave();
     redrawCanvas();
+    document.getElementById("get_wave").removeAttribute("disabled");
 }
 
 function repeatWave() {

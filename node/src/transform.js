@@ -46,6 +46,7 @@ function setup_transform(application) {
             var drawn_wave = application.get_drawn_wave();
             var components = do_transform(drawn_wave);
             application.animate_transform_components(components);
+            document.getElementById("stop").removeAttribute("disabled");
         });   
     }
 }

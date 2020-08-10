@@ -3,6 +3,11 @@
   <head>
     <title>Interactive Fourier Transforms</title>
     <meta charset="utf-8" />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+    <meta property="og:image" content="http://www.nickkasprak.com/nondrupal/fourier_new/preview_r1.png" />
+    <style>
+      body {font-family:"Roboto",sans-serif;}
+    </style>
   </head>
   <body>
 
@@ -18,13 +23,16 @@
         <div class="right-block block"></div>
       </div>
 
-      <button id="get_wave">Get Wave Data</button>
-
+      <button id="get_wave" disabled>Display As Sum of Sines</button>
+      <button id="stop" disabled>Stop</button>
       <div id="transformed-wave-container">
         <canvas id="transformed-wave" width="1024" height="256">
 
         </canvas>
+        <svg id="transform-overlay" viewBox="0 0 1024 256">
 
+        </svg>
+        <div id="overlay-label"></div>
       </div>
 
     </div>

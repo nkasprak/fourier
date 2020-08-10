@@ -15,3 +15,4 @@ animate(application);
 
 application.setup_draw_wave();
 application.setup_transform();
+application.setup_animate();

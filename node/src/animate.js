@@ -1,29 +1,36 @@
 "use strict";
 
-import draw_wave from "./draw_wave";
+import color_gen from "./colors.js";
 
 var application,
     canvas,
     ctx,
-    start,
+    svg,
     width,
     height,
-    totals = [];
-
-const prev_layer = [];
+    totals = [],
+    colors = color_gen("#3250a8", "#f2b98a", 256);
 
 const time_for_harmonic = 2000;
 const shift_time = 500;
 
-var animation_state = {
-    harmonic: 1,
-    progress: 0,
-    offset:0
-};
+var animation_state;
 
 export default function(_app) {
     application = _app;
     application.animate_transform_components = animate;
+    application.setup_animate = setup;
+}
+
+function setup() {
+    document.getElementById("stop").addEventListener("click", function() {
+        animation_state = animation_state || {};
+        animation_state.stopped = true;
+        window.requestAnimationFrame(function() {
+            totals = [];
+            document.getElementById("stop").setAttribute("disabled",true);
+        });
+    });
 }
 
 
@@ -40,18 +47,10 @@ function normalize(comp) {
 }
 
 function harmonic_color(i) {
-    if (i > 5) {
-        return "#aaaaaa";
-    } else {
-        return [
-            "#ffffff",
-            "#000000",
-            "#333333",
-            "#666666",
-            "#999999",
-            "#aaaaaa"
-        ][i];
+    if (i===0) {
+        return "#000000";
     }
+    return colors[i - 1];
 }
 
 function finish_component(comps, x, n) {
@@ -63,14 +62,14 @@ function finish_component(comps, x, n) {
     ctx.fillStyle = harmonic_color(n);
     totals[x] = totals[x] || 0;
     ctx.fillRect(x, height - totals[x], 1, totals[x]);
-    ctx.fillStyle="#000000";
+    ctx.fillStyle="rgba(0,0,0,0.5)";
     ctx.fillRect(x, height - totals[x] + 1, 1, 1);
     var x_total = 0;
     comps.forEach((comp, _n)=> {
         if (_n < n) {
             ctx.fillStyle = harmonic_color(_n);
             ctx.fillRect(x, height - x_total - comp[x] + animation_state.offset, 1, comp[x]);
-            ctx.fillStyle="#000000";
+            ctx.fillStyle="rgba(0,0,0,0.5)";
             ctx.fillRect(x, height - x_total - comp[x] + animation_state.offset + 1, 1, 1);
             x_total += comp[x];
         }
@@ -79,16 +78,27 @@ function finish_component(comps, x, n) {
 }
 
 function animate(raw_components) {
-    canvas = document.getElementById("transformed-wave");
-    ctx = canvas.getContext("2d");
-    width = canvas.getAttribute("width");
-    height = canvas.getAttribute("height");
-    var n_components = [];
-    for (var n = 0, nn = raw_components.length; n<nn; n++) {
-        n_components[n] = normalize(raw_components[n].re);
+    animation_state = {
+        stopped:true,
+        harmonic: 1,
+        progress: 0,
+        offset:0
     }
-    animation_state.components = n_components;
-    start_movement();
+    window.requestAnimationFrame(function() {
+        animation_state.stopped = false;
+        totals = [];
+        canvas = document.getElementById("transformed-wave");
+        ctx = canvas.getContext("2d");
+        svg = document.getElementById("transform-overlay");
+        width = canvas.getAttribute("width");
+        height = canvas.getAttribute("height");
+        var n_components = [];
+        for (var n = 0, nn = raw_components.length; n<nn; n++) {
+            n_components[n] = normalize(raw_components[n].re);
+        }
+        animation_state.components = n_components;
+        start_movement();
+    });
 }
 
 function shift_down(cb) {
@@ -116,6 +126,9 @@ function shift_down(cb) {
         
         ctx.putImageData(image_data, 0, offset);
         repeat_wave();
+        if (animation_state.stopped) {
+            return;
+        }
         if (progress < 1) {
             window.requestAnimationFrame(frame);
         } else {
@@ -130,13 +143,14 @@ function shift_down(cb) {
 
 function start_movement() {
     var comps = animation_state.components;
+    update_overlay(animation_state.harmonic);
     for (var x = 0, xx = comps[animation_state.harmonic].length;x<xx;x++) {
         finish_component(comps, x, animation_state.harmonic);
     }
-    console.log(totals);
     repeat_wave();
     var next_comp = function() {
         animation_state.harmonic++;
+        update_overlay(animation_state.harmonic);
         animation_state.progress = 0;
         if (comps[animation_state.harmonic]) {
             component_down(animation_state.harmonic, function() {
@@ -144,7 +158,7 @@ function start_movement() {
             });
         }
     }
-    next_comp();
+    setTimeout(next_comp, 1000);
 
 }
 
@@ -177,13 +191,16 @@ function component_down(harmonic, cb) {
                 } else {
                     ctx.fillStyle = harmonic_color(animation_state.harmonic);
                     ctx.fillRect(x, offset - comp[x], 1, comp[x]+1);
-                    ctx.fillStyle="#000000";
+                    ctx.fillStyle="rgba(0,0,0,0.5)";
                     ctx.fillRect(x, offset - comp[x] + 1, 1, 1);
                     ctx.fillRect(x, offset + 1, 1, 1);
                 }
             }
         }
         repeat_wave();
+        if (animation_state.stopped) {
+            return;
+        }
         if (progress < 1) {
             window.requestAnimationFrame(frame);
         } else {
@@ -195,17 +212,36 @@ function component_down(harmonic, cb) {
 
 }
 
-function draw(data) {
-    ctx.fillStyle = "#666";
-    for (var x = 0, xx = data.length; x<xx; x++) {
-        for (var y = 0, yy = data[x].length; y<yy; y++) {
-            var _y = height - y;
-            if (data[x][y]>0) {
-                ctx.fillRect(x, _y, 1, 1);
-            }
+function update_overlay(n) {
+    document.getElementById("overlay-label").innerText = "N = " + n;
+    while (svg.lastChild) {
+        svg.removeChild(svg.lastChild);
+    }
+    var opacity = 1/n;
+    var lines = n*4;
+    for (var i = 0; i<4;i++) {
+        var line = document.createElementNS("http://www.w3.org/2000/svg","line");
+        var x = width/4*i;
+        line.setAttribute("x1", x);
+        line.setAttribute("y1", 0);
+        line.setAttribute("x2", x);
+        line.setAttribute("y2", height);
+        line.setAttribute("stroke-width",1);
+        line.setAttribute("stroke","#000000");
+        svg.appendChild(line);
+    }
+    if (n > 1) {
+        for (var i = 0; i<lines;i++) {
+            var line = document.createElementNS("http://www.w3.org/2000/svg","line");
+            var x = width/lines*i;
+            line.setAttribute("x1", x);
+            line.setAttribute("y1", 0);
+            line.setAttribute("x2", x);
+            line.setAttribute("y2", height);
+            line.setAttribute("stroke-width",1);
+            line.setAttribute("stroke-opacity",opacity);
+            line.setAttribute("stroke","#000000");
+            svg.appendChild(line);
         }
     }
 }
-
-
-
